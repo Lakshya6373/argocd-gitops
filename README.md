@@ -1,0 +1,2 @@
+# argocd-gitops
+Argocd project
