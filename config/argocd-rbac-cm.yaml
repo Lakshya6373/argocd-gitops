@@ -50,4 +50,4 @@ data:
 
   # OIDC group claims key (adjust based on your IdP).
   # For GitHub SSO via Dex, this is typically "groups".
-  scopes: '[groups, email]'
+  scopes: "[groups, email]"

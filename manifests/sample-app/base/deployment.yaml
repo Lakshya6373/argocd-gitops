@@ -49,7 +49,7 @@ spec:
 
           env:
             - name: APP_ENV
-              value: "base"   # Overlays patch this to dev / staging / prod
+              value: "base" # Overlays patch this to dev / staging / prod
 
           resources:
             requests:

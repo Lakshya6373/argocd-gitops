@@ -53,15 +53,15 @@ spec:
   # - Deny window:  Weekend freeze prevents accidental Friday deploys
   syncWindows:
     - kind: allow
-      schedule: "0 2 * * 6"       # Saturday 02:00 UTC
+      schedule: "0 2 * * 6" # Saturday 02:00 UTC
       duration: 2h
       applications:
         - "sample-app-prod"
       manualSync: true
 
     - kind: deny
-      schedule: "0 16 * * 5"      # Friday 16:00 UTC
-      duration: 64h                # Covers Friday evening through Monday morning
+      schedule: "0 16 * * 5" # Friday 16:00 UTC
+      duration: 64h # Covers Friday evening through Monday morning
       applications:
         - "sample-app-prod"
       manualSync: false
