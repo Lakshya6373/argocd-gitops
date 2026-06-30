@@ -1,0 +1,47 @@
+# apps/prod/sample-app.yaml
+#
+# Production has automated sync DISABLED.
+# A release manager must run `argocd app sync sample-app-prod` explicitly,
+# or click Sync in the UI, during the allowed sync window (Saturday 02:00-04:00 UTC).
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sample-app-prod
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: sample-app
+    environment: prod
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: team-alpha
+
+  source:
+    repoURL: https://github.com/Lakshya6373/argocd-gitops.git
+    targetRevision: HEAD
+    path: manifests/sample-app/overlays/prod
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: sample-app-prod
+
+  # No automated sync for production.
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - PruneLast=true
+
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas
+    - group: autoscaling
+      kind: HorizontalPodAutoscaler
+      jsonPointers:
+        - /spec/minReplicas
+        - /spec/maxReplicas

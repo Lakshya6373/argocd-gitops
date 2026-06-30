@@ -1,0 +1,48 @@
+# Root Application — App of Apps Pattern
+#
+# This is the single manifest you apply manually to bootstrap the entire cluster.
+# Argo CD will then manage all child Applications defined under apps/<env>/.
+#
+# Apply with:
+#   kubectl apply -f bootstrap/root-app.yaml
+#
+# After applying, Argo CD owns everything. Do not manually apply child Applications.
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root-app
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: root-app
+    app.kubernetes.io/component: bootstrap
+  # Ensures child apps are deleted when root-app is deleted.
+  # Remove this finalizer if you want to delete root-app without cascading.
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: platform
+
+  source:
+    repoURL: https://github.com/Lakshya6373/argocd-gitops.git
+    targetRevision: HEAD
+    # Points to the apps/dev directory.
+    # For a multi-env root app, change this to point to a directory containing
+    # Application manifests for all environments, or use a separate root-app
+    # per environment (root-app-dev, root-app-staging, root-app-prod).
+    path: apps/dev
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - ApplyOutOfSyncOnly=true

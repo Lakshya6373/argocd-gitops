@@ -1,0 +1,53 @@
+# argocd-rbac-cm.yaml
+#
+# Argo CD RBAC policy using Casbin policy format.
+# Maps SSO groups (or local users) to Argo CD built-in roles or custom roles.
+#
+# Built-in roles:
+#   role:readonly  — read access to all resources, no sync or delete
+#   role:admin     — full access including cluster and application management
+#
+# Reference:
+# https://argo-cd.readthedocs.io/en/stable/operator-manual/rbac/
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-rbac-cm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-rbac-cm
+    app.kubernetes.io/part-of: argocd
+data:
+  # Default policy for authenticated users who have no explicit rule.
+  # Set to role:readonly to prevent anonymous write access.
+  policy.default: role:readonly
+
+  # CSV-formatted Casbin policy rules.
+  # Format: p, <subject>, <resource>, <action>, <object>, <allow|deny>
+  # Format: g, <subject>, <role>
+  policy.csv: |
+    # --- Platform SRE team: full admin ---
+    g, platform-team, role:admin
+
+    # --- Release managers: sync + manage apps in team-alpha project ---
+    p, role:release-manager, applications, get,        team-alpha/*, allow
+    p, role:release-manager, applications, sync,       team-alpha/*, allow
+    p, role:release-manager, applications, update,     team-alpha/*, allow
+    p, role:release-manager, applications, delete,     team-alpha/*, deny
+    p, role:release-manager, logs,         get,        team-alpha/*, allow
+    g, release-team, role:release-manager
+
+    # --- Developers: read + sync dev only, read staging, no prod ---
+    p, role:developer, applications, get,    team-alpha/sample-app-dev,     allow
+    p, role:developer, applications, sync,   team-alpha/sample-app-dev,     allow
+    p, role:developer, applications, get,    team-alpha/sample-app-staging, allow
+    p, role:developer, applications, sync,   team-alpha/sample-app-staging, deny
+    p, role:developer, applications, get,    team-alpha/sample-app-prod,    allow
+    p, role:developer, applications, sync,   team-alpha/sample-app-prod,    deny
+    p, role:developer, logs,         get,    team-alpha/sample-app-dev,     allow
+    g, dev-team, role:developer
+
+  # OIDC group claims key (adjust based on your IdP).
+  # For GitHub SSO via Dex, this is typically "groups".
+  scopes: '[groups, email]'

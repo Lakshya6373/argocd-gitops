@@ -1,0 +1,28 @@
+replicaCount: 2
+
+image:
+  tag: "1.27-alpine"
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+
+ingress:
+  enabled: true
+  hosts:
+    - host: sample-app.staging.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+
+env:
+  APP_ENV: "staging"

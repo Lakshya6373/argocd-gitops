@@ -1,0 +1,43 @@
+# Platform Project
+#
+# Used by the root App of Apps and infrastructure-level applications.
+# Grants broad access; intended for platform/SRE teams only.
+# Never grant developer accounts access to this project.
+
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: Platform project for cluster-level infrastructure and bootstrap applications.
+
+  # Allow this project to source from any repository.
+  # Tighten this in production to an explicit list of trusted repos.
+  sourceRepos:
+    - https://github.com/Lakshya6373/argocd-gitops.git
+
+  destinations:
+    # Allow deployment to any namespace on the in-cluster Kubernetes API server.
+    - server: https://kubernetes.default.svc
+      namespace: "*"
+
+  # Allow all Kubernetes resource kinds.
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"
+
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
+
+  # Project-level RBAC roles.
+  roles:
+    - name: platform-admin
+      description: Full read/write access to platform project applications.
+      policies:
+        - p, proj:platform:platform-admin, applications, *, platform/*, allow
+      groups:
+        - platform-team

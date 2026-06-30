@@ -1,0 +1,22 @@
+# Strategic merge patch for dev Deployment.
+# Only the fields listed here are changed; everything else inherits from base.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-app
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+        - name: sample-app
+          env:
+            - name: APP_ENV
+              value: "dev"
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi

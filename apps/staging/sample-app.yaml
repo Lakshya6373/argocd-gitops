@@ -1,0 +1,43 @@
+# apps/staging/sample-app.yaml
+#
+# Staging auto-syncs during business hours only (enforced by team-alpha-project sync window).
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sample-app-staging
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: sample-app
+    environment: staging
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: team-alpha
+
+  source:
+    repoURL: https://github.com/Lakshya6373/argocd-gitops.git
+    targetRevision: HEAD
+    path: manifests/sample-app/overlays/staging
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: sample-app-staging
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas

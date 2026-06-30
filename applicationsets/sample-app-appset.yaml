@@ -1,0 +1,109 @@
+# ApplicationSet — sample-app (List Generator)
+#
+# This single manifest replaces the three per-environment Application YAMLs
+# under apps/dev, apps/staging, and apps/prod.
+#
+# The List generator iterates over the elements array and renders one Application
+# per element, substituting {{env}}, {{namespace}}, and {{replicaCount}} in the template.
+#
+# At scale, replace the List generator with the Git Directory generator to
+# auto-discover new services without touching this file.
+
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: sample-app
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: sample-app
+    app.kubernetes.io/component: applicationset
+spec:
+  # Go template mode enables full Go templating syntax in the template section.
+  goTemplate: true
+  goTemplateOptions:
+    - missingkey=error
+
+  generators:
+    - list:
+        elements:
+          - env: dev
+            cluster: https://kubernetes.default.svc
+            namespace: sample-app-dev
+            replicaCount: "1"
+            autoSync: "true"
+
+          - env: staging
+            cluster: https://kubernetes.default.svc
+            namespace: sample-app-staging
+            replicaCount: "2"
+            autoSync: "true"
+
+          - env: prod
+            cluster: https://kubernetes.default.svc
+            namespace: sample-app-prod
+            replicaCount: "3"
+            # prod auto-sync is disabled; set to "false" to require manual sync
+            autoSync: "false"
+
+  template:
+    metadata:
+      # Application names follow the convention: <service>-<env>
+      name: "sample-app-{{ .env }}"
+      namespace: argocd
+      labels:
+        app.kubernetes.io/name: sample-app
+        app.kubernetes.io/instance: "sample-app-{{ .env }}"
+        environment: "{{ .env }}"
+      annotations:
+        # Sync wave ensures apps are created in environment order: dev -> staging -> prod
+        argocd.argoproj.io/sync-wave: "1"
+    spec:
+      project: team-alpha
+
+      source:
+        repoURL: https://github.com/Lakshya6373/argocd-gitops.git
+        targetRevision: HEAD
+        path: "manifests/sample-app/overlays/{{ .env }}"
+
+      destination:
+        server: "{{ .cluster }}"
+        namespace: "{{ .namespace }}"
+
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+          - ApplyOutOfSyncOnly=true
+          - PruneLast=true
+
+      # Ignore replica count drift caused by HPA scaling decisions.
+      # Without this, selfHeal would constantly fight HPA-driven scaling.
+      ignoreDifferences:
+        - group: apps
+          kind: Deployment
+          jsonPointers:
+            - /spec/replicas
+
+  # Strategy controls how ApplicationSet handles updates to existing Applications.
+  strategy:
+    type: RollingSync
+    rollingSync:
+      steps:
+        - matchExpressions:
+            - key: environment
+              operator: In
+              values:
+                - dev
+        - matchExpressions:
+            - key: environment
+              operator: In
+              values:
+                - staging
+        - matchExpressions:
+            - key: environment
+              operator: In
+              values:
+                - prod

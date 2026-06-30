@@ -1,0 +1,8 @@
+# Raise HPA limits for production traffic.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: sample-app
+spec:
+  minReplicas: 3
+  maxReplicas: 10

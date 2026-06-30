@@ -1,0 +1,25 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: sample-app-dev
+
+resources:
+  - ../../base
+
+# Override the image tag for this environment.
+# Update newTag to deploy a new version.
+images:
+  - name: sample-app
+    newName: nginx
+    newTag: "1.27-alpine"
+
+# Strategic merge patches override specific fields without rewriting full manifests.
+patches:
+  - path: patch-deployment.yaml
+    target:
+      kind: Deployment
+      name: sample-app
+
+# Apply a common label to identify the environment on all resources.
+commonLabels:
+  environment: dev

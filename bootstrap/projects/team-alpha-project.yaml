@@ -1,0 +1,96 @@
+# Team Alpha Project
+#
+# Scoped project for application development teams.
+# Restricts source repos, destination namespaces, and resource kinds.
+# Includes sync windows to enforce change-freeze in production.
+
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: team-alpha
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: Project for Team Alpha application workloads (dev, staging, prod).
+
+  sourceRepos:
+    - https://github.com/Lakshya6373/argocd-gitops.git
+
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: sample-app-dev
+    - server: https://kubernetes.default.svc
+      namespace: sample-app-staging
+    - server: https://kubernetes.default.svc
+      namespace: sample-app-prod
+
+  # Deny cluster-scoped resources; teams should not create ClusterRoles, etc.
+  clusterResourceWhitelist: []
+
+  namespaceResourceWhitelist:
+    - group: "apps"
+      kind: Deployment
+    - group: "apps"
+      kind: ReplicaSet
+    - group: ""
+      kind: Service
+    - group: ""
+      kind: ServiceAccount
+    - group: ""
+      kind: ConfigMap
+    - group: ""
+      kind: Pod
+    - group: "autoscaling"
+      kind: HorizontalPodAutoscaler
+    - group: "networking.k8s.io"
+      kind: Ingress
+    - group: "policy"
+      kind: PodDisruptionBudget
+
+  # Sync Windows
+  # - Allow window: Saturday maintenance window (production deployments)
+  # - Deny window:  Weekend freeze prevents accidental Friday deploys
+  syncWindows:
+    - kind: allow
+      schedule: "0 2 * * 6"       # Saturday 02:00 UTC
+      duration: 2h
+      applications:
+        - "sample-app-prod"
+      manualSync: true
+
+    - kind: deny
+      schedule: "0 16 * * 5"      # Friday 16:00 UTC
+      duration: 64h                # Covers Friday evening through Monday morning
+      applications:
+        - "sample-app-prod"
+      manualSync: false
+
+    # Dev and staging: always allow
+    - kind: allow
+      schedule: "* * * * *"
+      duration: 24h
+      applications:
+        - "sample-app-dev"
+        - "sample-app-staging"
+      manualSync: true
+
+  roles:
+    - name: developer
+      description: Read-only access to dev and staging; no prod access.
+      policies:
+        - p, proj:team-alpha:developer, applications, get,    team-alpha/sample-app-dev, allow
+        - p, proj:team-alpha:developer, applications, sync,   team-alpha/sample-app-dev, allow
+        - p, proj:team-alpha:developer, applications, get,    team-alpha/sample-app-staging, allow
+        - p, proj:team-alpha:developer, applications, sync,   team-alpha/sample-app-staging, allow
+        - p, proj:team-alpha:developer, applications, get,    team-alpha/sample-app-prod, allow
+        - p, proj:team-alpha:developer, applications, sync,   team-alpha/sample-app-prod, deny
+      groups:
+        - dev-team
+
+    - name: release-manager
+      description: Full sync access including production.
+      policies:
+        - p, proj:team-alpha:release-manager, applications, *, team-alpha/*, allow
+      groups:
+        - release-team

@@ -1,0 +1,48 @@
+# argocd-cm.yaml
+#
+# Core Argo CD server configuration.
+# Apply with: kubectl apply -f config/argocd-cm.yaml -n argocd
+#
+# Reference:
+# https://argo-cd.readthedocs.io/en/stable/operator-manual/argocd-cm-yaml/
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-cm
+    app.kubernetes.io/part-of: argocd
+data:
+  # URL used in notification links and UI breadcrumbs.
+  url: https://argocd.example.com
+
+  # Application reconciliation timeout.
+  # Argo CD polls Git every <timeout> seconds even without a webhook.
+  timeout.reconciliation: 180s
+
+  # Hard-limit any single sync operation to prevent infinite loops.
+  timeout.hard.reconciliation: 0s
+
+  # Enable the ApplicationSet controller.
+  applicationSet.enabled: "true"
+
+  # Allow self-signed certificates for private Git servers.
+  # In production, add the CA cert via argocd-tls-certs-cm instead.
+  # server.insecure: "false"
+
+  # Enable resource tracking using annotation-based ownership.
+  # Options: label, annotation, annotation+label
+  application.resourceTrackingMethod: annotation
+
+  # Repositories can also be registered here, but the recommended approach
+  # for production is to use the argocd-repositories secret or the UI.
+  # repositories: |
+  #   - url: https://github.com/Lakshya6373/argocd-gitops.git
+  #     type: git
+
+  # Diff customization: ignore last-applied-configuration annotation noise.
+  resource.customizations.ignoreDifferences.all: |
+    jqPathExpressions:
+      - '.metadata.annotations["kubectl.kubernetes.io/last-applied-configuration"]'

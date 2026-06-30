@@ -1,0 +1,10 @@
+# Namespace is managed here so Argo CD can track it as a resource.
+# The sync-wave annotation ensures this is created before all other resources.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sample-app  # Overlays patch this to sample-app-dev, sample-app-staging, etc.
+  labels:
+    app.kubernetes.io/name: sample-app
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
